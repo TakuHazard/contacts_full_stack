@@ -10,6 +10,64 @@ app.use(express.json())
 
 
 
+const mongoose = require('mongoose')
+const url = 'mongodb+srv://fullstack:qwerty123@cluster0-2fmje.mongodb.net/phonebook-app?retryWrites=true&w=majority'
+
+mongoose.connect(url, {useNewUrlParser: true, useUnifiedTopology : true})
+
+
+
+let persons = [
+    {
+        name : "Arto Hellas",
+        number : "040-12456",
+        id:1
+    },
+    {
+        name : "Ada Lovelace",
+        number: "39-902384893",
+        id: 2
+    },
+    {
+        name: "Dam Abramov",
+        number: "12-432-12121",
+        id : 3
+    },
+    {
+        name: "Mary Poppendieck",
+        number : "39-23-23290",
+        id: 4
+    }
+]
+
+const personSchema = new mongoose.Schema({
+    name : String,
+    phoneNumber: String,
+})
+
+const Person = mongoose.model('Person',personSchema)
+
+persons.map(person =>{
+    var savePerson = new Person({
+        name : person.name,
+        phoneNumber : person.number,
+    })
+    savePerson.save().then(result =>{
+        console.log(`added ${savePerson.name} number ${savePerson.phoneNumber} to phonebook`)
+        mongoose.connection.close()
+    
+    })
+})
+
+Person.find({}).then(result =>{
+    result.forEach(note => {
+        console.log(note)
+    })
+
+    mongoose.connection.close()
+})
+
+
 
 morgan.token('person', function(req,res){
     return JSON.stringify(req.body)
@@ -34,28 +92,6 @@ app.use(morgan(':method :url :response-time :person',{
 
 // app.use(requestLogger)
 
-let persons = [
-    {
-        name : "Arto Hellas",
-        number : "040-12456",
-        id:1
-    },
-    {
-        name : "Ada Lovelace",
-        number: "39-902384893",
-        id: 2
-    },
-    {
-        name: "Dam Abramov",
-        number: "12-432-12121",
-        id : 3
-    },
-    {
-        name: "Mary Poppendieck",
-        number : "39-23-23290",
-        id: 4
-    }
-]
 
 app.get('/',(req,res) =>{
     res.send('<h1>Welcome to Contacts Web App!</h1>')
