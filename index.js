@@ -75,28 +75,33 @@ app.delete('/api/persons/:id', (req,res) =>{
 app.post('/api/persons', (req,res) =>{
     const personInput = req.body
   
-
-    if(!personInput.name || !personInput.number){
+    if(!personInput["name"] || !personInput["number"]){
         return res.status(400).json({
             error: 'content missing'
         })
     }
 
-    const existingPerson = persons.find(person => person.name ===personInput.name)
+    let existingPerson = null
+    Person.find({name : personInput["name"]}).then(result =>{
+        console.log(result)
+        existingPerson = result
+    })
+
+    console.log(existingPerson)
 
     if(existingPerson){
         return res.status(400).json({
             error: 'person already exists'
         })
     }
-    const personOutput = {
+    const personOutput = new Person({
         name : personInput.name,
-        number: personInput.number,
-        id : generateid()
-    }
+        phoneNumber: personInput.number,
+    })
 
-   persons =  persons.concat(personOutput)
-    res.json(personOutput)
+    personOutput.save().then(savedPerson =>{
+        res.json(savedPerson)
+    })
 
 })
 
