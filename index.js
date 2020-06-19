@@ -51,58 +51,75 @@ app.get('/api/info', (req,res) =>{
 })
 
 app.get('/api/persons/:id', (req,res) =>{
-    const id = Number(req.params.id)
-    const person = persons.find(person => person.id === id)
-    if(person){
-        res.json(person)
-    }
-    else{
-        res.status(404).end()
-    }
-})
+    // const id = Number(req.params.id)
 
-
-const generateid = () =>{
-    return Math.floor((Math.random() * 100) + 1)
-}
-app.delete('/api/persons/:id', (req,res) =>{
-    const id = Number(req.params.id)
-    persons = persons.filter(person => person.id !== id)
-
-    res.status(204).end()
+    Person.findById(req.params.id)
+          .then(result =>{
+             console.log("result",result)
+             var person = result
+             if(person){
+                res.json(person)
+            }
+            else{
+                res.status(404).end()
+            }
+          })
+    
 })
 
 app.post('/api/persons', (req,res) =>{
-    const personInput = req.body
-  
-    if(!personInput["name"] || !personInput["number"]){
+    const personInput = req.body  
+    if(!personInput.name || !personInput.phoneNumber){
         return res.status(400).json({
             error: 'content missing'
         })
     }
 
-    let existingPerson = null
     Person.find({name : personInput["name"]}).then(result =>{
-        console.log(result)
-        existingPerson = result
-    })
-
-    console.log(existingPerson)
-
-    if(existingPerson){
-        return res.status(400).json({
-            error: 'person already exists'
+        var existingPerson = result
+   
+        if(existingPerson.length !== 0){
+            return res.status(400).json({
+                error: 'person already exists'
+            })
+        }
+        const personOutput = new Person({
+            name : personInput.name,
+            phoneNumber: personInput.phoneNumber,
         })
+
+        personOutput.save().then(savedPerson =>{
+            res.json(savedPerson)
+        })
+    })
+})
+
+app.delete('/api/persons/:id', (request, response, next) =>{
+    Person.findByIdAndRemove(request.params.id)
+          .then(result =>{
+              console.log(result)
+              response.status(204).end()
+          })
+          .catch(error => {
+               next(error)
+          })
+})
+
+app.put('/api/persons/:id', (request,response,next) =>{
+    const body = request.body
+
+    const person = {
+        name : body.name,
+        phoneNumber: body.phoneNumber
     }
-    const personOutput = new Person({
-        name : personInput.name,
-        phoneNumber: personInput.number,
-    })
 
-    personOutput.save().then(savedPerson =>{
-        res.json(savedPerson)
-    })
-
+    Person.findByIdAndUpdate(request.params.id, person, {new : true})
+          .then(updatedPerson =>{
+              response.json(updatedPerson)
+          })
+          .catch(error =>{
+             next(error)
+          })
 })
 
 const unknownEndpoint = (request,response) =>{
@@ -111,6 +128,17 @@ const unknownEndpoint = (request,response) =>{
 
 app.use(unknownEndpoint)
 
+const errorHandler =(error, request,response, next) =>{
+    console.error(error.message)
+    if(error.name === 'CastError'){
+        return response.status(404).send({error : 'malformatted id'})
+
+    }
+
+    next(error)
+}
+
+app.use(errorHandler)
 const PORT = process.env.PORT || 3001
 app.listen(PORT,()=>{
     console.log(`Server running on port ${PORT}`)
